@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuestador y Cómputo de Obras - Ing. Julio Zambrano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; background-color: #f4f6f9; color: #2d3748; }
+
+        header { background: #1a365d; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 15px; }
+        header h1 { margin: 0; font-size: 1.25rem; }
+
+        /* Tab Navigation */
+        .tab-bar { display: flex; background: #e2e8f0; border-bottom: 2px solid #cbd5e0; padding: 0 20px; overflow-x: auto; }
+        .tab-btn { padding: 12px 18px; font-weight: bold; border: none; background: transparent; cursor: pointer; color: #4a5568; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+        .tab-btn.active { color: #2b6cb0; border-bottom-color: #2b6cb0; background: white; }
+        .tab-badge { background: #e2e8f0; color: #2d3748; padding: 2px 8px; border-radius: 12px; font-size: 0.78rem; }
+        .tab-btn.active .tab-badge { background: #3182ce; color: white; }
+
+        /* Container Principal */
+        .container { padding: 20px; max-width: 1250px; margin: 0 auto; }
+
+        /* Tabla y Acordeón Ficha */
+        .table-card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 15px; }
+        .table-header-tools { padding: 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 15px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .search-input { padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; width: 100%; max-width: 300px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #edf2f7; text-align: left; padding: 12px 15px; font-size: 0.82rem; color: #4a5568; text-transform: uppercase; }
+        td { padding: 10px 15px; border-bottom: 1px solid #edf2f7; font-size: 0.88rem; }
+        
+        tr.rubro-header-row { background: #ebf8ff; font-weight: bold; color: #2b6cb0; cursor: pointer; user-select: none; transition: background 0.2s; }
+        tr.rubro-header-row:hover { background: #bee3f8; }
+        tr.rubro-header-row td { padding: 12px 15px; font-size: 0.92rem; border-top: 1px solid #bee3f8; border-bottom: 1px solid #bee3f8; }
+        .accordion-arrow { display: inline-block; transition: transform 0.2s ease; margin-right: 8px; font-size: 0.85rem; }
+        
+        .qty-input { width: 100px; padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right; font-weight: bold; color: #2b6cb0; }
+        .qty-input:focus { border-color: #3182ce; outline: none; background: #f0fff4; }
+
+        .action-bar { margin-top: 20px; display: flex; justify-content: flex-end; gap: 15px; flex-wrap: wrap; }
+        .btn-next { background: #2b6cb0; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.92rem; display: flex; align-items: center; gap: 8px; transition: background 0.2s; }
+        .btn-next:hover { background: #2c5282; }
+        .btn-success { background: #38a169; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.92rem; transition: background 0.2s; }
+        .btn-success:hover { background: #2f855a; }
+
+        /* Parametrización Layout */
+        .param-layout { display: flex; gap: 20px; min-height: 500px; flex-wrap: wrap; }
+        .param-sidebar { flex: 1 1 300px; max-width: 350px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 15px; }
+        .param-main { flex: 2 1 500px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px; }
+        
+        .side-item { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .side-item:hover { background: #f7fafc; }
+        .side-item.active { border-color: #3182ce; background: #ebf8ff; font-weight: bold; }
+
+        .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-top: 15px; }
+        .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 5px; color: #4a5568; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; }
+        
+        .empty-state { text-align: center; padding: 50px 20px; color: #a0aec0; width: 100%; }
+
+        .summary-section { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px; margin-bottom: 20px; }
+        .summary-title { border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; color: #2b6cb0; margin-top: 0; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .summary-table th { background: #f7fafc; border-bottom: 2px solid #cbd5e0; padding: 10px; text-align: left; }
+        .summary-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; }
+        .summary-table .qty-col { text-align: right; font-weight: bold; color: #2d3748; }
+        .summary-table .unit-col { text-align: center; color: #718096; width: 80px; }
+        .summary-table .money-col { text-align: right; color: #2d3748; }
+        
+        .btn-variant { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; cursor: pointer; margin-left: 10px; transition: 0.2s; }
+        .btn-variant:hover { background: #e2e8f0; }
+        .instance-row { background: white; transition: 0.2s; }
+        .instance-row:hover { background: #f7fafc; }
+        .item-desc-input { width: 100%; border: 1px solid transparent; padding: 4px; background: transparent; font-size: 0.88rem; color: #2d3748; }
+        .item-desc-input:hover, .item-desc-input:focus { border: 1px solid #cbd5e0; background: white; border-radius: 4px; outline:none; }
+        
+        .bom-breakdown { font-size: 0.82rem; color: #718096; margin-left: 15px; padding: 5px 0 5px 15px; border-left: 2px solid #e2e8f0; }
+        .bom-item-line { display: flex; justify-content: space-between; margin-bottom: 4px; }
+
+        .budget-row { cursor: pointer; transition: background 0.15s; }
+        .budget-row:hover { background: #f8fafc; }
+        .budget-detail-row { background: #fdfdfe; display: none; }
+        .budget-detail-container { padding: 12px 20px; background: #f8fafc; border-left: 4px solid #3182ce; margin: 8px 0; border-radius: 4px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.03); }
+
+        @media print {
+            .tab-bar, .action-bar, header, .no-print { display: none !important; }
+            body { background: white; }
+            .container { padding: 0; max-width: 100%; }
+            .summary-section { box-shadow: none; margin: 0; border: 1px solid #e2e8f0; page-break-inside: avoid; }
+            .budget-detail-row { display: table-row !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <h1 style="margin:0;">Presupuestador y Cómputo de Obras</h1>
+                <div style="font-size: 0.68rem; opacity: 0.75; font-style: italic; margin-top: 2px;">Aplicación generada con IA supervisada por profesionales de la construcción pero puede cometer errores</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; display: flex; align-items: center; gap: 8px;">
+                <span>👤 <b>Rol:</b></span>
+                <select id="user-role-select" onchange="changeUserRole(this.value)" style="background: #2b6cb0; color: white; border: 1px solid #3182ce; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; font-weight: bold; cursor: pointer;">
+                    <option value="Profesional">Profesional</option>
+                    <option value="Administrador">Administrador</option>
+                </select>
+                <span id="license-status-badge" style="background: #d69e2e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Prueba Gratuita (30 días)</span>
+            </div>
+            <button onclick="openRenewalModal()" style="background: #3182ce; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#2b6cb0'" onmouseout="this.style.background='#3182ce'">
+                💳 Renovar / Pagar
+            </button>
+            <button onclick="openLicenseModal()" style="background: #2f855a; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#276749'" onmouseout="this.style.background='#2f855a'">
+                🔑 Ingresar Licencia
+            </button>
+            <button onclick="openHelpModal()" style="background: #4a5568; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#2d3748'" onmouseout="this.style.background='#4a5568'">
+                ❓ Ayuda
+            </button>
+        </div>
+    </header>
+
+    <!-- Modal de Ayuda -->
+    <div id="help-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1200; justify-content: center; align-items: center; padding: 15px;">
+        <div style="background: white; border-radius: 12px; max-width: 550px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden;">
+            <div style="background: #1a365d; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.05rem;">📖 Ayuda y Condiciones de Uso</h3>
+                <button onclick="closeHelpModal()" style="background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div style="padding: 20px; font-size: 0.88rem; color: #2d3748; line-height: 1.6; max-height: 70vh; overflow-y: auto;">
+                <h4 style="color: #2b6cb0; margin-top: 0;">¿Cómo utilizar esta aplicación?</h4>
+                <ol style="padding-left: 20px; margin-bottom: 15px;">
+                    <li><b>Pestaña 0 (Datos Generales):</b> Complete los datos del comitente y configure las condiciones económicas (IVA y régimen de mano de obra).</li>
+                    <li><b>Pestaña 1 (Ficha de Carga):</b> Despliegue los rubros y cargue las cantidades necesarias en cada ítem. Puede añadir variantes (a, b, c).</li>
+                    <li><b>Pestaña 2 (Parametrización):</b> Configure los detalles técnicos específicos de cada ítem con cantidad positiva.</li>
+                    <li><b>Pestaña 3 (Reporte de Insumos):</b> <u>No se necesita exportar a Excel</u>; los costos unitarios y rendimientos HH son totalmente modificables aquí, y <b>el sistema recalcula automáticamente</b> todos los montos y subtotales en tiempo real.</li>
+                    <li><b>Pestaña 4 (Demanda e Incidencia):</b> Analice la clasificación de recursos en materiales y mano de obra con su incidencia porcentual y monetaria.</li>
+                    <li><b>Pestaña 5 (APU Ítem x Ítem):</b> Revise el análisis de precios unitarios con acordeón desplegable detallando los costos unitarios específicos.</li>
+                </ol>
+                <h4 style="color: #2b6cb0;">Condiciones de Licenciamiento y Funcionamiento Offline</h4>
+                <p>La aplicación cuenta con un período de prueba gratuito de <b>30 días</b> y funciona 100% offline en tu navegador web sin requerir conexión a internet. Una vez finalizado el período, requerirá una clave de activación (Serial Key). Realice una transferencia al alias <code>jime.z.mp</code> y envíe el comprobante por WhatsApp al <b>+54 9 3525 50-9715</b>.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Activación de Licencia y Panel de Administrador -->
+    <div id="license-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1100; justify-content: center; align-items: center; padding: 15px;">
+        <div style="background: white; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden;">
+            <div style="background: #1a365d; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.05rem;" id="license-modal-title">🔑 Activación de Licencia de Uso</h3>
+                <button onclick="closeLicenseModal()" style="background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div style="padding: 20px;" id="license-modal-body">
+                <p style="font-size: 0.88rem; color: #4a5568; line-height: 1.5; margin-bottom: 15px;">
+                    Ingrese la clave de licencia provista tras realizar el pago trimestral para habilitar el uso ilimitado de la aplicación.
+                </p>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Clave de Activación (Serial Key):</label>
+                    <input type="text" id="license-key-input" placeholder="Ej: JZ-PRO-2026-XXXX" style="font-family: monospace; font-weight: bold; text-transform: uppercase;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="activateLicense()" style="flex: 1; background: #38a169; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Validar Licencia</button>
+                    <button onclick="closeLicenseModal()" style="flex: 1; background: #cbd5e0; color: #2d3748; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Renovación de Suscripción -->
+    <div id="renewal-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 15px;">
+        <div style="background: white; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden;">
+            <div style="background: #1a365d; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">💳 Renovación de Suscripción por Transferencia</h3>
+                <button onclick="closeRenewalModal()" style="background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div style="padding: 20px;">
+                <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 0.88rem; color: #22543d; line-height: 1.5;">
+                    Realice la transferencia bancaria utilizando los datos detallados a continuación. Una vez realizado el pago, envíe el comprobante al celular <b>+54 9 3525 50-9715</b> para recibir su código de licencia actualizado.
+                </div>
+                
+                <div style="font-size: 0.92rem; color: #2d3748; line-height: 1.6; margin-bottom: 20px;">
+                    <div><b>Plan:</b> Suscripción TRIMESTRAL ($ 15.000)</div>
+                    <div><b>Titular:</b> JIMENA ANDREA ZAMBRANO MARTINEZ</div>
+                    <div><b>DNI:</b> 43673466</div>
+                    <div><b>Banco:</b> Mercado Pago</div>
+                    <div style="margin-top: 6px;"><b>Alias:</b> <span id="alias-text" style="background: #edf2f7; padding: 3px 8px; border-radius: 4px; font-family: monospace; font-weight: bold; color: #2b6cb0;">jime.z.mp</span></div>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="copyAlias()" id="copy-btn" style="flex: 1; background: #38a169; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        📋 Copiar Alias
+                    </button>
+                    <a href="https://wa.me/5493525509715?text=Hola,%20adjunto%20comprobante%20de%20pago%20para%20renovaci%C3%B3n%20de%20suscripci%C3%B3n%20de%20la%20App." target="_blank" style="flex: 1; background: #3182ce; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px;">
+                        💬 Enviar Comprobante
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-bar" id="main-tab-bar" style="display: none;">
+        <button class="tab-btn" id="tab0-btn" onclick="switchTab(0)">0. Datos Generales</button>
+        <button class="tab-btn active" id="tab1-btn" onclick="switchTab(1)">1. Ficha de Carga (Cómputo)</button>
+        <button class="tab-btn" id="tab2-btn" onclick="switchTab(2)">2. Parametrización <span class="tab-badge" id="selected-count-badge">0</span></button>
+        <button class="tab-btn" id="tab3-btn" onclick="switchTab(3)">3. Reporte de Insumos</button>
+        <button class="tab-btn" id="tab4-btn" onclick="switchTab(4)">4. Demanda e Incidencia de Insumos</button>
+        <button class="tab-btn" id="tab5-btn" onclick="switchTab(5)">5. APU Ítem x Ítem</button>
+    </div>
+
+    <div class="container">
+        
+        <!-- PESTAÑA 0: PORTAL DE INICIO (DATOS GENERALES) -->
+        <div id="tab0-content">
+            <div class="summary-section" style="max-width: 850px; margin: 20px auto; padding: 30px;">
+                <h2 style="color: #1a365d; margin-top:0; border-bottom: 2px solid #3182ce; padding-bottom: 10px;">📋 Datos Generales del Proyecto y Condiciones Contractuales</h2>
+                <p style="color: #4a5568; margin-bottom: 20px;">Complete los datos del comitente y configure las condiciones económicas antes de iniciar el cómputo.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                    <div class="form-group">
+                        <label>Comitente / Propietario:</label>
+                        <input type="text" id="project-owner" value="Juan Pérez" placeholder="Nombre del comitente">
+                    </div>
+                    <div class="form-group">
+                        <label>Ubicación / Propiedad:</label>
+                        <input type="text" id="project-location" value="B° La Estanzuela, Córdoba" placeholder="Dirección de la obra">
+                    </div>
+                    <div class="form-group">
+                        <label>Profesional Responsable:</label>
+                        <input type="text" id="project-prof" value="Ing. Civil Julio Zambrano (MP 4097)" placeholder="Nombre y Matrícula">
+                    </div>
+                </div>
+
+                <div style="background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                    <h3 style="color: #2b6cb0; margin-top: 0; font-size: 1.02rem;">⚖️ Nota: El presupuesto se realizará según las siguientes condiciones:</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 15px;">
+                        <div class="form-group">
+                            <label>1) IVA Incluido en Precios de Referencia:</label>
+                            <select id="cond-iva" onchange="updateProjectConditions()">
+                                <option value="SI" selected>SÍ (Precios Easy / MercadoLibre con 21% IVA)</option>
+                                <option value="NO">NO (Descontar 21% IVA para costos netos)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>2) Costo de Mano de Obra:</label>
+                            <select id="cond-labor" onchange="updateProjectConditions()">
+                                <option value="CONTRATISTA" selected>CONTRATISTA (+20% equipos menores +70% gastos/beneficio)</option>
+                                <option value="PROPIA">PROPIA (Costo directo UOCRA puro sin adicionales)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn-success" onclick="startProject()" style="padding: 14px 28px; font-size: 1.02rem;">
+                        🚀 Iniciar Cómputo y Presupuesto ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 1: FICHA DE CARGA -->
+        <div id="tab1-content" style="display: none;">
+            <div class="table-card">
+                <div class="table-header-tools">
+                    <span style="font-weight: bold; color: #4a5568;">Ingrese las cantidades requeridas para su presupuesto:</span>
+                    <input type="text" class="search-input" placeholder="Buscar ítem..." onkeyup="filterItems(this.value)">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Ítem</th>
+                                <th>Descripción de la Tarea</th>
+                                <th style="width: 80px; text-align: center;">Unidad</th>
+                                <th style="width: 140px; text-align: right;">Cantidad</th>
+                                <th style="width: 100px; text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="action-bar">
+                <button class="btn-next" onclick="switchTab(2)">Continuar a Parametrización ➔</button>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: PARAMETRIZACIÓN -->
+        <div id="tab2-content" style="display: none;">
+            <div id="param-wrapper"></div>
+            <div class="action-bar" id="tab2-actions" style="display: none;">
+                <button class="btn-success" onclick="switchTab(3)">Ver Reporte de Insumos ➔</button>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 3: REPORTE DE INSUMOS -->
+        <div id="tab3-content" style="display: none;">
+            <div id="summary-wrapper"></div>
+            <div class="action-bar" id="tab3-actions" style="display: none;">
+                <button class="btn-next" onclick="switchTab(4)">Ver Demanda e Incidencia ➔</button>
+                <button class="btn-success" onclick="window.print()">🖨️ Imprimir Reportes PDF</button>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 4: DEMANDA E INCIDENCIA DE INSUMOS -->
+        <div id="tab4-content" style="display: none;">
+            <div id="incidence-wrapper"></div>
+            <div class="action-bar" id="tab4-actions" style="display: none;">
+                <button class="btn-next" onclick="switchTab(5)">Ver APU Ítem x Ítem ➔</button>
+                <button class="btn-success" onclick="window.print()">🖨️ Imprimir Demanda PDF</button>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 5: APU ÍTEM X ÍTEM -->
+        <div id="tab5-content" style="display: none;">
+            <div id="apu-wrapper"></div>
+            <div class="action-bar" id="tab5-actions" style="display: none;">
+                <button class="btn-success" onclick="window.print()">🖨️ Imprimir APU PDF</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// Sistema de Licenciamiento, 30 días offline y Panel de Administrador exclusivo
+function checkLicense() {
+    let installDate = localStorage.getItem('jz_install_date');
+    let isActivated = localStorage.getItem('jz_license_activated') === 'true';
+    
+    if (!installDate) {
+        installDate = new Date().getTime();
+        localStorage.setItem('jz_install_date', installDate);
+    }
+    
+    if (isActivated) {
+        document.getElementById('license-status-badge').innerText = "Licencia Activa (PRO)";
+        document.getElementById('license-status-badge').style.background = "#38a169";
+        return true;
+    }
+    
+    const now = new Date().getTime();
+    const diffDays = (now - parseInt(installDate)) / (1000 * 60 * 60 * 24);
+    
+    if (diffDays <= 30) {
+        const daysLeft = Math.ceil(30 - diffDays);
+        document.getElementById('license-status-badge').innerText = `Prueba Gratuita (${daysLeft} días)`;
+        document.getElementById('license-status-badge').style.background = "#d69e2e";
+        return true;
+    } else {
+        document.getElementById('license-status-badge').innerText = "Prueba Expirada";
+        document.getElementById('license-status-badge').style.background = "#e53e3e";
+        alert("El período de prueba gratuita de 30 días ha finalizado. Por favor, adquiera una licencia o ingrese su clave para continuar.");
+        openRenewalModal();
+        return false;
+    }
+}
+
+function changeUserRole(role) {
+    if (role === "Administrador") {
+        const pass = prompt("Ingrese la Contraseña Maestra de Administrador:");
+        if (pass !== "ADMIN2026") {
+            alert("Contraseña incorrecta.");
+            document.getElementById('user-role-select').value = "Profesional";
+            return;
+        } else {
+            alert("Acceso de Administrador Concedido.");
+        }
+    }
+    renderAdminModalContent(role);
+}
+
+function renderAdminModalContent(role) {
+    const title = document.getElementById('license-modal-title');
+    const body = document.getElementById('license-modal-body');
+    
+    if (role === "Administrador") {
+        title.innerText = "🛠️ Panel de Generación de Licencias (Admin)";
+        body.innerHTML = `
+            <p style="font-size: 0.88rem; color: #4a5568; line-height: 1.5; margin-bottom: 15px;">
+                Como administrador exclusivo, puede generar códigos de licencia trimestrales para distribuir a sus clientes profesionales.
+            </p>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Nombre o Correo del Profesional:</label>
+                <input type="text" id="admin-client-name" placeholder="Ej: Ing. Mario Gómez">
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Clave Generada:</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="admin-generated-key" readonly style="font-family: monospace; font-weight: bold; background:#edf2f7;" value="JZ-PRO-2026-XXXX">
+                    <button onclick="generateAdminKey()" style="background:#2b6cb0; color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Generar</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeLicenseModal()" style="flex: 1; background: #cbd5e0; color: #2d3748; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cerrar Panel</button>
+            </div>
+        `;
+    } else {
+        title.innerText = "🔑 Activación de Licencia de Uso";
+        body.innerHTML = `
+            <p style="font-size: 0.88rem; color: #4a5568; line-height: 1.5; margin-bottom: 15px;">
+                Ingrese la clave de licencia provista tras realizar el pago trimestral para habilitar el uso ilimitado de la aplicación.
+            </p>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Clave de Activación (Serial Key):</label>
+                <input type="text" id="license-key-input" placeholder="Ej: JZ-PRO-2026-XXXX" style="font-family: monospace; font-weight: bold; text-transform: uppercase;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="activateLicense()" style="flex: 1; background: #38a169; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Validar Licencia</button>
+                <button onclick="closeLicenseModal()" style="flex: 1; background: #cbd5e0; color: #2d3748; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancelar</button>
+            </div>
+        `;
+    }
+}
+
+function generateAdminKey() {
+    const client = document.getElementById('admin-client-name').value.trim() || "CLIENTE";
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const key = `JZ-PRO-2026-${rand}`;
+    document.getElementById('admin-generated-key').value = key;
+    alert(`Clave generada para ${client}: ${key}`);
+}
+
+function openLicenseModal() {
+    const role = document.getElementById('user-role-select').value;
+    renderAdminModalContent(role);
+    document.getElementById('license-modal').style.display = 'flex';
+}
+
+function closeLicenseModal() {
+    document.getElementById('license-modal').style.display = 'none';
+}
+
+function openHelpModal() {
+    document.getElementById('help-modal').style.display = 'flex';
+}
+
+function closeHelpModal() {
+    document.getElementById('help-modal').style.display = 'none';
+}
+
+function activateLicense() {
+    const key = document.getElementById('license-key-input').value.trim().toUpperCase();
+    if (key.startsWith("JZ-PRO-") || key === "ADMIN2026") {
+        localStorage.setItem('jz_license_activated', 'true');
+        alert("¡Licencia activada con éxito! Disfrute de la aplicación.");
+        closeLicenseModal();
+        checkLicense();
+    } else {
+        alert("Clave de licencia inválida. Verifique con el administrador.");
+    }
+}
+
+let projectConfig = {
+    owner: "Juan Pérez",
+    location: "B° La Estanzuela, Córdoba",
+    prof: "Ing. Civil Julio Zambrano (MP 4097)",
+    iva: "SI",
+    laborRegime: "CONTRATISTA"
+};
+
+function updateProjectConditions() {
+    projectConfig.owner = document.getElementById('project-owner').value;
+    projectConfig.location = document.getElementById('project-location').value;
+    projectConfig.prof = document.getElementById('project-prof').value;
+    projectConfig.iva = document.getElementById('cond-iva').value;
+    projectConfig.laborRegime = document.getElementById('cond-labor').value;
+}
+
+function startProject() {
+    if (!checkLicense()) return;
+    updateProjectConditions();
+    document.getElementById('main-tab-bar').style.display = 'flex';
+    switchTab(1);
+}
+
+function openRenewalModal() {
+    document.getElementById('renewal-modal').style.display = 'flex';
+}
+
+function closeRenewalModal() {
+    document.getElementById('renewal-modal').style.display = 'none';
+}
+
+function copyAlias() {
+    const aliasText = "jime.z.mp";
+    const textArea = document.createElement("textarea");
+    textArea.value = aliasText;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        const btn = document.getElementById('copy-btn');
+        btn.innerText = "✅ ¡Alias Copiado!";
+        btn.style.background = "#2f855a";
+        setTimeout(() => {
+            btn.innerText = "📋 Copiar Alias";
+            btn.style.background = "#38a169";
+        }, 2000);
+    } catch (err) {
+        console.error('Error al copiar al portapapeles', err);
+    }
+    document.body.removeChild(textArea);
+}
+
+const itemsData = [
+    { rubro: "1.0 TRABAJOS PRELIMINARES Y BASES", items: [
+        { id: "1.1", desc: "LIMPIEZA DE TERRENO", un: "m²", params: [{ name: "terreno", label: "Estado del terreno", opts: ["Bueno", "Regular", "Mal"] }] },
+        { id: "1.2", desc: "Excavación manual/mecánica", un: "m³", params: [{ name: "terreno", label: "Estado del terreno", opts: ["Duro", "Blando", "Regular"] }] },
+        { id: "1.3", desc: "Hormigón de Bases (incluye armadura y encofrado)", un: "un", params: [
+            { name: "tipoH", label: "Tipo Hormigón", opts: ["H17", "H21", "H25"] }, 
+            { name: "elabo", label: "Elaboración", opts: ["Manual", "Elaborado"] }, 
+            { name: "m3base", label: "m³ por Base", type: "number", default: "0.5" },
+            { name: "lx", label: "Lado X (m)", type: "number", default: "1.0" },
+            { name: "ly", label: "Lado Y (m)", type: "number", default: "1.0" },
+            { name: "arm_prin", label: "Armadura Principal", type: "text", default: "ø 10mm c/15cm" },
+            { name: "arm_rep", label: "Armadura Repartición", type: "text", default: "ø 10mm c/15cm" }
+        ] },
+        { id: "1.4", desc: "Encadenados Horizontales H°A°", un: "ml", params: [
+            { name: "tipoH", label: "Tipo Hormigón", opts: ["H17", "H21", "H25"] }, 
+            { name: "elabo", label: "Elaboración", opts: ["Manual", "Elaborado"] },
+            { name: "seccion", label: "Sección (A x B cm)", type: "text", default: "20 x 20" }, 
+            { name: "hierro", label: "Hierro Principal", type: "text", default: "4 ø 10mm" }, 
+            { name: "estribos", label: "Estribos", type: "text", default: "ø 6mm c/20cm" },
+            { name: "largo_prom", label: "Largo Promedio (m)", type: "number", default: "3.0" },
+            { name: "anclaje", label: "Long. Anclaje (LA) (m)", type: "number", default: "0.30" }
+        ] },
+        { id: "1.5", desc: "Encadenados Verticales H°A°", un: "ml", params: [
+            { name: "tipoH", label: "Tipo Hormigón", opts: ["H17", "H21", "H25"] }, 
+            { name: "elabo", label: "Elaboración", opts: ["Manual", "Elaborado"] },
+            { name: "seccion", label: "Sección (A x B cm)", type: "text", default: "20 x 20" }, 
+            { name: "hierro", label: "Hierro Principal", type: "text", default: "4 ø 10mm" },
+            { name: "estribos", label: "Estribos", type: "text", default: "ø 6mm c/20cm" },
+            { name: "largo_prom", label: "Altura Promedio (m)", type: "number", default: "3.0" },
+            { name: "anclaje", label: "Long. Anclaje (LA) (m)", type: "number", default: "0.30" }
+        ] },
+        { id: "1.6", desc: "Relleno de tierra y compactación", un: "m³", params: [{ name: "material", label: "Material Relleno", opts: ["Tierra Seleccionada", "Cascotes"] }, { name: "compacta", label: "Compactación", opts: ["Medio", "Alto"] }] }
+    ]},
+    { rubro: "2.0 CERRAMIENTOS", items: [
+        { id: "2.1", desc: "Mampostería de Fundación: Ladrillos 15/30 cm", un: "m²", params: [{ name: "ladrillo", label: "Tipo de Ladrillo", opts: ["Cerámico 12x18x33", "Cerámico 18x18x33", "Común 15", "Común 30"] }, { name: "mezcla", label: "Mezcla de Asiento", opts: ["Con Cemento Albañilería", "Con Cal Hidratada"] }, { name: "bolseado", label: "Revestimiento Bolseado", opts: ["Sí", "No"] }, { name: "asfaltica", label: "Pintura Asfáltica", opts: ["Sí", "No"] }] },
+        { id: "2.2", desc: "CAPA AISLADORA", un: "m²", params: [{ name: "espesor", label: "Espesor (cm)", type: "number", default: "2" }, { name: "polietileno", label: "Polietileno 200 micras", opts: ["Sí", "No"] }, { name: "hidrofugo", label: "Aditivo Hidrófugo", opts: ["Sí", "No"] }] }
+    ]},
+    { rubro: "3.0 LOSAS", items: [
+        { id: "3.1", desc: "LOSAS DE HORMIGON ARMADO", un: "m²", params: [
+            { name: "tipoH", label: "Tipo Hormigón", opts: ["H17", "H21", "H25"] }, 
+            { name: "elabo", label: "Elaboración", opts: ["Manual", "Elaborado"] },
+            { name: "espesor", label: "Espesor (cm)", type: "number", default: "12" },
+            { name: "lado_a", label: "Lado A corto (m)", type: "number", default: "3.0" },
+            { name: "lado_b", label: "Lado B largo (m)", type: "number", default: "4.0" },
+            { name: "arm_pcpal_diam", label: "Armadura Pcpal. (ø mm)", type: "number", default: "8" },
+            { name: "arm_pcpal_cant", label: "Armadura Pcpal. (Cant / m)", type: "number", default: "6" },
+            { name: "arm_rep_diam", label: "Armadura Repartición (ø mm)", type: "number", default: "6" },
+            { name: "arm_rep_cant", label: "Armadura Repartición (Cant / m)", type: "number", default: "5" }
+        ] },
+        { id: "3.2", desc: "LOSAS DE VIGUETAS PREMOLDEADAS", un: "m²", params: [
+            { name: "lc", label: "Luz de cálculo LC (m)", type: "number", default: "4.0" },
+            { name: "la", label: "Long. Apoyo LA (m)", type: "number", default: "0.15" },
+            { name: "lcu", label: "Luz a Cubrir LCU (m)", type: "number", default: "4.0" },
+            { name: "lr", label: "Luz con Refuerzos LR (m)", type: "number", default: "4.0" },
+            { name: "arm_ref_diam", label: "Armadura Refuerzo (ø mm)", type: "number", default: "8" },
+            { name: "arm_ref_cant", label: "Armadura Refuerzo (Cant / m)", type: "number", default: "2" },
+            { name: "molon", label: "Tipo de Molón", opts: ["Polietileno EPS", "Ladrillos Cerámicos 12.5 cm", "Ladrillos Cerámicos 17 cm", "Bloques Hormigón CORBLOCK"] },
+            { name: "capa", label: "Espesor Capa Comp.", opts: ["4 cm", "5 cm", "6 cm"] }
+        ] }
+    ]},
+    { rubro: "4.0 REVESTIMIENTOS", items: [
+        { id: "4.1", desc: "REVOQUE GRUESO ESP: 2 CM", un: "m²", params: [{ name: "aditivo", label: "Aditivo Hidrófugo", opts: ["No", "Sí"] }, { name: "terminacion", label: "Terminación", opts: ["Fratazado", "Peinado", "Otro"] }] },
+        { id: "4.2", desc: "REVOQUE FINO ESP: 0,5 CM", un: "m²", params: [{ name: "terminacion", label: "Terminación", opts: ["Fratazado", "Al Yeso", "Otro"] }] },
+        { id: "4.3", desc: "Revestimiento plástico tipo REVEAR", un: "m²", params: [{ name: "terminacion", label: "Terminación", opts: ["Fratazado", "Peinado"] }] }
+    ]},
+    { rubro: "5.0 CUBIERTA DE TECHOS", items: [
+        { id: "5.1", desc: "DE HORMIGON ALIVIANADO", un: "m²", params: [
+            { name: "elabo", label: "Elaboración", opts: ["Manual", "Elaborado"] },
+            { name: "espesor_prom", label: "Espesor Promedio (cm)", type: "number", default: "8" },
+            { name: "aliviano", label: "Agregado Alivianado", opts: ["Perlas Polietileno EPS", "Vermiculita"] }
+        ] }
+    ]},
+    { rubro: "6.0 PISOS Y TERMINACIONES", items: [
+        { id: "6.1", desc: "Contrapiso de hormigón pobre", un: "m²", params: [
+            { name: "tipo", label: "Tipo", opts: ["Cascotes", "Hormigón de cascotes"] },
+            { name: "espesor", label: "Espesor (cm)", type: "number", default: "10" },
+            { name: "capa_espesor", label: "Espesor Capa Nivelación (cm)", type: "number", default: "2" }
+        ] },
+        { id: "6.2", desc: "Revestimiento de Pisos", un: "m²", params: [
+            { name: "tipo", label: "Tipo de Piso", opts: ["Porcelanato 60x60", "Esmaltado 40x40", "Rústico 30x30", "Calcáreo 30x30"] },
+            { name: "espesor_peg", label: "Espesor Capa Pegamento (cm)", type: "number", default: "0.8" },
+            { name: "pastina", label: "Pastina (kg/m²)", type: "number", default: "0.4" }
+        ] },
+        { id: "6.3", desc: "Piso Flotante (incluye manta)", un: "m²", params: [
+            { name: "tipo", label: "Tipo de madera", opts: ["Madera compensada 8mm", "Melamínico alto tránsito 8mm"] },
+            { name: "manta", label: "Incluye manta bajo piso", opts: ["Sí", "No"] }
+        ] },
+        { id: "6.4", desc: "Zócalos", un: "ml", params: [
+            { name: "tipo", label: "Material Zócalo", opts: ["PVC", "Cerámico", "Porcelanato"] },
+            { name: "altura", label: "Altura (cm)", type: "number", default: "7" }
+        ] },
+        { id: "6.5", desc: "Revestimiento Cerámico de Paredes", un: "m²", params: [
+            { name: "tipo", label: "Tipo Cerámico", opts: ["Cerámico de pared PI3 30x45", "Porcelanato de pared"] },
+            { name: "espesor_peg", label: "Espesor Pegamento (cm)", type: "number", default: "0.8" },
+            { name: "pastina", label: "Pastina (kg/m²)", type: "number", default: "0.5" }
+        ] }
+    ]}
+];
+
+const baseUnitPrices = {
+    "Cemento Portland (Bolsa 25kg)": 8500,
+    "Cal Hidratada (Bolsa 25kg)": 5500,
+    "Cemento de Albañil. (Bolsa 40kg)": 8800,
+    "Arena Gruesa (m³)": 55000,
+    "Arena Fina/Mediana (m³)": 60000,
+    "Arena Fina (m³)": 60000,
+    "Piedra Partida (m³)": 65000,
+    "Tierra Seleccionada (m³)": 55000,
+    "Cascotes (m³)": 28000,
+    "Molón Polietileno EPS (un)": 3500,
+    "Ladrillo Cerámico 12.5 cm para Techo (un)": 1500,
+    "Ladrillo Cerámico 17 cm para Techo (un)": 1800,
+    "Bloque Hormigón CORBLOCK (un)": 2200,
+    "Vigueta Pretensada L=2.60m (un)": 10990,
+    "Vigueta Pretensada L=3.00m (un)": 13790,
+    "Vigueta Pretensada L=3.40m (un)": 14390,
+    "Vigueta Pretensada L=3.60m (un)": 17990,
+    "Vigueta Pretensada L=3.80m (un)": 19190,
+    "Vigueta Pretensada L=4.00m (un)": 21000,
+    "Vigueta Pretensada L=4.40m (un)": 25990,
+    "Vigueta Pretensada L=4.80m (un)": 29490,
+    "Vigueta Pretensada L=5.00m (un)": 31415,
+    "Vigueta Pretensada L=5.40m (un)": 38780,
+    "Hierro ø6mm (Varilla 12m)": 8500,
+    "Hierro ø8mm (Varilla 12m)": 11500,
+    "Hierro ø10mm (Varilla 12m)": 17500,
+    "Hierro ø12mm (Varilla 12m)": 24500,
+    "Alambre de Atar (kg)": 4500,
+    "Clavos Punta París 2 1/2\" (kg)": 4200,
+    "Pintura Asfáltica (Lata 18L)": 85000,
+    "Hidrófugo (Ceresita) (Balde 10L)": 32000,
+    "Ladrillo Cerámico 12x18x33": 800,
+    "Ladrillo Cerámico 18x18x33": 1250,
+    "Ladrillo Común 15": 250,
+    "Ladrillo Común 30": 250,
+    "Hormigón Elaborado H17 (m³)": 125000,
+    "Hormigón Elaborado H21 (m³)": 135000,
+    "Hormigón Elaborado H25 (m³)": 145000,
+    "Agregado Alivianado (Perlas Polietileno EPS)": 18000,
+    "Agregado Alivianado (Vermiculita)": 22000,
+    "Porcelanato 60x60 (m²)": 16500,
+    "Cerámico Esmaltado 40x40 (m²)": 9500,
+    "Cerámico Rústico 30x30 (m²)": 8500,
+    "Piso Calcáreo 30x30 (m²)": 14000,
+    "Pegamento para Pisos/Cerámicos (Bolsa 30kg)": 9800,
+    "Pastina (Bolsa 1kg)": 1800,
+    "Piso Flotante con Manta (m²)": 18500,
+    "Zócalo PVC (ml)": 3200,
+    "Zócalo Cerámico (ml)": 4500,
+    "Zócalo Porcelanato (ml)": 6500,
+    "Cerámico de Pared PI3 30x45 (m²)": 9200,
+    "Peón (Limpieza)": 4500,
+    "Peón (Excavación)": 4500,
+    "Oficial Albañil": 6000,
+    "Medio Oficial": 5200,
+    "Ayudante (Hormigón)": 4800,
+    "Ayudante": 4800,
+    "Oficial Armador": 6200,
+    "Oficial Colocador de Pisos": 6500
+};
+
+let itemInstances = [];
+let parametrizations = {};
+let activeParamItemId = null;
+let rubricOpenState = {};
+let customYields = {};
+let customPrices = {};
+
+const itemDictionary = {};
+itemsData.forEach((r, idx) => {
+    rubricOpenState[idx] = true;
+    r.items.forEach(it => {
+        itemDictionary[it.id] = it;
+        itemInstances.push({
+            id: `${it.id}_0`,
+            baseId: it.id,
+            letter: 'a',
+            desc: it.desc,
+            qty: ""
+        });
+    });
+});
+
+function toggleRubro(idx) {
+    rubricOpenState[idx] = !rubricOpenState[idx];
+    renderTab1();
+}
+
+function addInstance(baseId) {
+    const existing = itemInstances.filter(i => i.baseId === baseId);
+    const baseItem = itemDictionary[baseId];
+    const nextLetter = String.fromCharCode(97 + existing.length);
+    const newId = `${baseId}_${existing.length}`;
+    
+    const lastIndex = itemInstances.indexOf(existing[existing.length - 1]);
+    itemInstances.splice(lastIndex + 1, 0, {
+        id: newId,
+        baseId: baseId,
+        letter: nextLetter,
+        desc: `${baseItem.desc} (Variante ${nextLetter.toUpperCase()})`,
+        qty: ""
+    });
+    renderTab1();
+}
+
+function removeInstance(instId) {
+    itemInstances = itemInstances.filter(i => i.id !== instId);
+    delete parametrizations[instId];
+    updateBadge();
+    renderTab1();
+}
+
+function setQuantity(instId, val) {
+    const inst = itemInstances.find(i => i.id === instId);
+    if (inst) inst.qty = val ? parseFloat(val) : "";
+    updateBadge();
+}
+
+function setDesc(instId, val) {
+    const inst = itemInstances.find(i => i.id === instId);
+    if (inst) inst.desc = val;
+}
+
+function updateBadge() {
+    const count = itemInstances.filter(i => i.qty > 0).length;
+    document.getElementById('selected-count-badge').innerText = count;
+}
+
+function switchTab(tabNum) {
+    [0, 1, 2, 3, 4, 5].forEach(n => {
+        const btn = document.getElementById(`tab${n}-btn`);
+        if (btn) btn.classList.toggle('active', tabNum === n);
+        const content = document.getElementById(`tab${n}-content`);
+        if (content) content.style.display = tabNum === n ? 'block' : 'none';
+    });
+
+    if (tabNum === 2) renderTab2();
+    if (tabNum === 3) renderTab3();
+    if (tabNum === 4) renderTab4();
+    if (tabNum === 5) renderTab5();
+}
+
+function renderTab1() {
+    const tbody = document.getElementById('items-table-body');
+    let html = '';
+
+    itemsData.forEach((r, rIdx) => {
+        const isOpen = rubricOpenState[rIdx];
+        const arrow = isOpen ? '▼' : '▶';
+        html += `
+        <tr class="rubro-header-row" onclick="toggleRubro(${rIdx})">
+            <td colspan="5">
+                <span class="accordion-arrow">${arrow}</span> ${r.rubro}
+            </td>
+        </tr>`;
+
+        if (isOpen) {
+            r.items.forEach(it => {
+                const instances = itemInstances.filter(i => i.baseId === it.id);
+                instances.forEach((inst, index) => {
+                    const displayId = `${it.id}${inst.letter}`;
+                    html += `
+                    <tr id="row-${inst.id}" class="instance-row">
+                        <td style="font-weight:bold; color:#2b6cb0; padding-left: 25px;">${displayId}</td>
+                        <td>
+                            <input type="text" class="item-desc-input" value="${inst.desc}" onchange="setDesc('${inst.id}', this.value)" placeholder="Descripción de la tarea...">
+                        </td>
+                        <td style="text-align:center; color:#718096;">${it.un}</td>
+                        <td style="text-align:right;">
+                            <input type="number" class="qty-input" value="${inst.qty}" placeholder="0.00" min="0" step="0.01" oninput="setQuantity('${inst.id}', this.value)">
+                        </td>
+                        <td style="text-align:center;">
+                            ${index === 0 
+                                ? `<button class="btn-variant" onclick="addInstance('${it.id}')" title="Crear sub-ítem">+ Añadir</button>`
+                                : `<button class="btn-variant" style="color:#e53e3e;" onclick="removeInstance('${inst.id}')" title="Eliminar sub-ítem">🗑️</button>`
+                            }
+                        </td>
+                    </tr>`;
+                });
+            });
+        }
+    });
+    tbody.innerHTML = html;
+}
+
+function renderTab2() {
+    const wrapper = document.getElementById('param-wrapper');
+    const actions = document.getElementById('tab2-actions');
+    const activeInsts = itemInstances.filter(i => i.qty > 0);
+
+    if (activeInsts.length === 0) {
+        wrapper.innerHTML = `
+            <div class="empty-state">
+                <h2>⚠️ No hay ítems seleccionados</h2>
+                <p>Por favor, regrese a la <b>Ficha de Carga (Pestaña 1)</b> e ingrese la cantidad en al menos un ítem.</p>
+                <button class="btn-next" onclick="switchTab(1)" style="margin: 0 auto;">👈 Volver</button>
+            </div>`;
+        actions.style.display = 'none';
+        return;
+    }
+
+    actions.style.display = 'flex';
+
+    if (!activeParamItemId || !activeInsts.find(i => i.id === activeParamItemId)) {
+        activeParamItemId = activeInsts[0].id;
+    }
+
+    const activeInst = activeInsts.find(i => i.id === activeParamItemId);
+    const baseItemObj = itemDictionary[activeInst.baseId];
+
+    let html = `
+    <div class="param-layout">
+        <div class="param-sidebar">
+            <h3 style="margin-top:0; font-size:1rem; color:#1a365d;">Ítems Activos (${activeInsts.length})</h3>
+            ${activeInsts.map(inst => `
+                <div class="side-item ${inst.id === activeParamItemId ? 'active' : ''}" onclick="selectParamItem('${inst.id}')">
+                    <div>
+                        <span style="color:#2b6cb0; font-weight:bold;">${inst.baseId}${inst.letter}</span> 
+                        <div style="font-size:0.85rem; color:#4a5568; overflow:hidden; text-overflow:ellipsis; max-width:180px; white-space:nowrap;">${inst.desc}</div>
+                    </div>
+                    <span style="font-weight:bold; color:#2d3748; white-space:nowrap;">${inst.qty} ${baseItemObj.un}</span>
+                </div>
+            `).join('')}
+        </div>
+
+        <div class="param-main">
+            <h2 style="margin-top:0; color:#1a365d;">${activeInst.baseId}${activeInst.letter} - ${activeInst.desc}</h2>
+            <div style="background:#edf2f7; padding:10px 15px; border-radius:6px; margin-bottom:20px; font-weight:bold;">
+                Cantidad en Cómputo: <span style="color:#2b6cb0;">${activeInst.qty} ${baseItemObj.un}</span>
+            </div>
+
+            <h3 style="font-size:1rem; border-bottom:2px solid #edf2f7; padding-bottom:8px;">Parámetros del Ítem</h3>
+            <div class="param-grid">
+                ${baseItemObj.params.map(p => {
+                    const defaultVal = p.default || (p.opts ? p.opts[0] : '');
+                    const currentVal = (parametrizations[activeInst.id] && parametrizations[activeInst.id][p.name]) !== undefined ? parametrizations[activeInst.id][p.name] : defaultVal;
+                    
+                    saveParam(activeInst.id, p.name, currentVal, false);
+
+                    return `
+                    <div class="form-group">
+                        <label>${p.label}:</label>${p.opts ? `
+                            <select onchange="saveParam('${activeInst.id}', '${p.name}', this.value)">
+                                ${p.opts.map(o => `<option value="${o}" ${currentVal === o ? 'selected' : ''}>${o}</option>`).join('')}
+                            </select>
+                        ` : `
+                            <input type="${p.type || 'text'}" value="${currentVal}" oninput="saveParam('${activeInst.id}', '${p.name}', this.value)">
+                        `}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+    </div>`;
+
+    wrapper.innerHTML = html;
+}
+
+function selectParamItem(id) { activeParamItemId = id; renderTab2(); }
+function saveParam(instId, paramName, val, reRender = false) {
+    if (!parametrizations[instId]) parametrizations[instId] = {};
+    parametrizations[instId][paramName] = val;
+    if(reRender) renderTab2();
+}
+function getParam(instId, baseId, paramName) {
+    if (parametrizations[instId] && parametrizations[instId][paramName] !== undefined) return parametrizations[instId][paramName];
+    const paramDef = itemDictionary[baseId].params.find(p => p.name === paramName);
+    return paramDef.default || (paramDef.opts ? paramDef.opts[0] : '');
+}
+function filterItems(text) {
+    const rows = document.querySelectorAll('#items-table-body tr.instance-row');
+    rows.forEach(row => {
+        const content = row.innerText.toLowerCase();
+        row.style.display = content.includes(text.toLowerCase()) ? '' : 'none';
+    });
+}
+
+function getEffectivePrice(name) {
+    let rawPrice = customPrices[name] !== undefined ? customPrices[name] : (baseUnitPrices[name] !== undefined ? baseUnitPrices[name] : 1000);
+    
+    const isLabor = name.includes("Peón") || name.includes("Oficial") || name.includes("Ayudante") || name.includes("Medio Oficial") || name.includes("Cuadrilla");
+    if (isLabor && projectConfig.laborRegime === "CONTRATISTA") {
+        rawPrice = rawPrice * 2.10;
+    }
+
+    if (projectConfig.iva === "NO") {
+        rawPrice = rawPrice / 1.21;
+    }
+
+    return rawPrice;
+}
+
+function calculateProject() {
+    let budgetLines = [];
+    let materialsTotal = {};
+    let laborTasks = [];
+
+    const getWaste = (name) => {
+        if(name.includes("Hierro") || name.includes("Hormigón Elaborado") || name.includes("Vigueta")) return 1.05;
+        if(name.includes("Arena") || name.includes("Piedra") || name.includes("Tierra") || name.includes("Cascotes") || name.includes("Agregado")) return 1.10;
+        if(name.includes("Cemento") || name.includes("Cal") || name.includes("Pegamento")) return 1.07;
+        if(name.includes("Ladrillo") || name.includes("Bloque") || name.includes("Molón") || name.includes("Porcelanato") || name.includes("Cerámico") || name.includes("Calcáreo") || name.includes("Flotante") || name.includes("Zócalo") || name.includes("Alambre") || name.includes("Clavos")) return 1.03;
+        if(name.includes("Pintura") || name.includes("Hidrófugo") || name.includes("Pastina")) return 1.05;
+        return 1.0;
+    };
+
+    const calcVarillasEst = (param, sec, mlTotal) => {
+        const m = param.match(/ø\s*(\d+)mm\s*c\/(\d+)cm/i);
+        let d = 6, sp = 0.2;
+        if(m) { d = parseInt(m[1]); sp = parseInt(m[2])/100; }
+        let perim = 0.8;
+        const sm = sec.match(/(\d+)\s*x\s*(\d+)/i);
+        if(sm) perim = (parseInt(sm[1]) + parseInt(sm[2])) * 2 / 100;
+        return { d: d, v: (1/sp) * perim * mlTotal / 12 };
+    };
+
+    const calcParrilla = (param, lx, ly) => {
+        let m = param.match(/ø\s*(\d+)mm\s*c\/(\d+)cm/i);
+        let d = 10, sp = 0.15;
+        if(m){ d = parseInt(m[1]); sp = parseInt(m[2])/100; }
+        let nx = Math.ceil(ly / sp) + 1; 
+        let ml = nx * lx; 
+        return { d: d, ml: ml };
+    };
+
+    const getClosestVigueta = (exactLength) => {
+        const standardLengths = [2.6, 3.0, 3.4, 3.6, 3.8, 4.0, 4.4, 4.8, 5.0, 5.4];
+        let chosen = standardLengths[standardLengths.length - 1];
+        for (let l of standardLengths) {
+            if (l >= exactLength) {
+                chosen = l;
+                break;
+            }
+        }
+        return chosen.toFixed(2);
+    };
+
+    itemInstances.filter(i => i.qty > 0).forEach(inst => {
+        let q = parseFloat(inst.qty);
+        let mats = [];
+        let labs = [];
+
+        const addMat = (name, qty, un) => mats.push({name, qty, un});
+        const addLab = (name, baseYield, un) => {
+            let yieldKey = `${inst.id}_${name}`;
+            let appliedYield = customYields[yieldKey] !== undefined ? parseFloat(customYields[yieldKey]) : baseYield;
+            labs.push({name, qty: q * appliedYield, un, baseYield: appliedYield});
+        };
+        const addManualElabLab = (volM3) => {
+            let hhManual = (volM3 / 0.60) * 5.0;
+            let yieldManual = q > 0 ? hhManual / q : 0;
+            let yieldKey = `${inst.id}_Ayudante (Hormigón)`;
+            let appliedYield = customYields[yieldKey] !== undefined ? parseFloat(customYields[yieldKey]) : yieldManual;
+            labs.push({name: "Ayudante (Hormigón)", qty: appliedYield * q, un: "hs", baseYield: appliedYield});
+        };
+
+        let totalSteelKg = 0;
+        let totalConcreteM3 = 0;
+
+        switch (inst.baseId) {
+            case "1.1":
+                addLab("Peón (Limpieza)", 0.2, "hs");
+                break;
+            case "1.2":
+                let terr = getParam(inst.id, inst.baseId, "terreno");
+                let hsExc = terr === "Duro" ? 4.5 : (terr === "Blando" ? 2.5 : 3.5);
+                addLab("Peón (Excavación)", hsExc, "hs");
+                break;
+            case "1.3":
+                let m3base = parseFloat(getParam(inst.id, inst.baseId, "m3base"));
+                let volBases = q * m3base; 
+                totalConcreteM3 += volBases;
+                let tipoH = getParam(inst.id, inst.baseId, "tipoH");
+                let elabo = getParam(inst.id, inst.baseId, "elabo");
+                let cemB = (tipoH === "H17" ? 300 : (tipoH === "H21" ? 350 : 400)) / 25;
+                
+                if(elabo === "Manual") {
+                    addMat("Cemento Portland (Bolsa 25kg)", volBases * cemB, "bolsas");
+                    addMat("Arena Gruesa (m³)", volBases * 0.65, "m³");
+                    addMat("Piedra Partida (m³)", volBases * 0.70, "m³");
+                    addManualElabLab(volBases);
+                } else {
+                    addMat(`Hormigón Elaborado ${tipoH} (m³)`, volBases, "m³");
+                }
+                
+                let lx = parseFloat(getParam(inst.id, inst.baseId, "lx"));
+                let ly = parseFloat(getParam(inst.id, inst.baseId, "ly"));
+                let hP = calcParrilla(getParam(inst.id, inst.baseId, "arm_prin"), lx, ly);
+                let hR = calcParrilla(getParam(inst.id, inst.baseId, "arm_rep"), ly, lx);
+                
+                let varP = (hP.ml * q) / 12;
+                let varR = (hR.ml * q) / 12;
+                addMat(`Hierro ø${hP.d}mm (Varilla 12m)`, varP, "varillas");
+                addMat(`Hierro ø${hR.d}mm (Varilla 12m)`, varR, "varillas");
+
+                let pesoSteelP = hP.ml * q * (Math.pow(hP.d, 2) / 162);
+                let pesoSteelR = hR.ml * q * (Math.pow(hR.d, 2) / 162);
+                totalSteelKg += (pesoSteelP + pesoSteelR);
+
+                addLab("Oficial Albañil", 2.50, "hs"); 
+                addLab("Ayudante (Hormigón)", 6.00, "hs");
+                break;
+            case "1.4":
+            case "1.5":
+                let sec = getParam(inst.id, inst.baseId, "seccion");
+                let tipoHEnc = getParam(inst.id, inst.baseId, "tipoH");
+                let elaboEnc = getParam(inst.id, inst.baseId, "elabo");
+                let lp = parseFloat(getParam(inst.id, inst.baseId, "largo_prom"));
+                let la = parseFloat(getParam(inst.id, inst.baseId, "anclaje"));
+                
+                let sm = sec.match(/(\d+)\s*x\s*(\d+)/i);
+                let volEnc = sm ? (parseInt(sm[1])/100) * (parseInt(sm[2])/100) * q : 0.04 * q;
+                totalConcreteM3 += volEnc;
+                
+                let cemEnc = (tipoHEnc === "H17" ? 300 : 350) / 25;
+                if(elaboEnc === "Manual") {
+                    addMat("Cemento Portland (Bolsa 25kg)", volEnc * cemEnc, "bolsas");
+                    addMat("Arena Gruesa (m³)", volEnc * 0.65, "m³");
+                    addMat("Piedra Partida (m³)", volEnc * 0.65, "m³");
+                    addManualElabLab(volEnc);
+                } else {
+                    addMat(`Hormigón Elaborado ${tipoHEnc} (m³)`, volEnc, "m³");
+                }
+                
+                let hLongParam = getParam(inst.id, inst.baseId, "hierro");
+                let matchLong = hLongParam.match(/(\d+)\s*ø\s*(\d+)/i);
+                let numBars = matchLong ? parseInt(matchLong[1]) : 4;
+                let diamLong = matchLong ? parseInt(matchLong[2]) : 10;
+                
+                let mlLongTotal = (numBars * q) + (numBars * la * (q / lp));
+                addMat(`Hierro ø${diamLong}mm (Varilla 12m)`, mlLongTotal / 12, "varillas");
+                totalSteelKg += mlLongTotal * (Math.pow(diamLong, 2) / 162);
+                
+                let hEst = calcVarillasEst(getParam(inst.id, inst.baseId, "estribos"), sec, q);
+                addMat(`Hierro ø${hEst.d}mm (Varilla 12m)`, hEst.v, "varillas");
+                totalSteelKg += (hEst.v * 12) * (Math.pow(hEst.d, 2) / 162);
+                
+                addLab("Oficial Albañil", 0.8, "hs");
+                addLab("Ayudante", 1.2, "hs");
+                break;
+            case "1.6":
+                let matRelleno = getParam(inst.id, inst.baseId, "material");
+                if(matRelleno === "Tierra Seleccionada") addMat("Tierra Seleccionada (m³)", q, "m³");
+                else addMat("Cascotes (m³)", q, "m³");
+                addLab("Ayudante", 1.8, "hs");
+                break;
+            case "2.1":
+                let ladrillo = getParam(inst.id, inst.baseId, "ladrillo");
+                let mezcla = getParam(inst.id, inst.baseId, "mezcla");
+                let isAsfaltica = getParam(inst.id, inst.baseId, "asfaltica") === "Sí";
+                
+                let unidLadrillo = ladrillo.includes("Cerámico") ? 16 : 60;
+                addMat(`Ladrillo ${ladrillo}`, q * unidLadrillo, "un");
+                
+                if(mezcla.includes("Albañilería")) {
+                    addMat("Cemento de Albañil. (Bolsa 40kg)", q * (8/40), "bolsas");
+                } else {
+                    addMat("Cal Hidratada (Bolsa 25kg)", q * (5/25), "bolsas");
+                    addMat("Cemento Portland (Bolsa 25kg)", q * (2/25), "bolsas");
+                }
+                addMat("Arena Fina/Mediana (m³)", q * 0.025, "m³");
+                if (isAsfaltica) addMat("Pintura Asfáltica (Lata 18L)", q * (0.5/18), "latas");
+                
+                addLab("Oficial Albañil", 1.1, "hs");
+                addLab("Ayudante", 1.2, "hs");
+                break;
+            case "2.2":
+                let esp = parseFloat(getParam(inst.id, inst.baseId, "espesor")) / 100;
+                let volAisle = q * esp;
+                addMat("Cemento Portland (Bolsa 25kg)", volAisle * (400/25), "bolsas");
+                addMat("Arena Fina (m³)", volAisle * 0.9, "m³");
+                if(getParam(inst.id, inst.baseId, "hidrofugo") === "Sí") addMat("Hidrófugo (Ceresita) (Balde 10L)", q * (0.2/10), "baldes");
+                addLab("Oficial Albañil", 0.5, "hs");
+                addLab("Ayudante", 0.5, "hs");
+                break;
+            case "3.1":
+                let tipoH3 = getParam(inst.id, inst.baseId, "tipoH");
+                let elabo3 = getParam(inst.id, inst.baseId, "elabo");
+                let ladoASolid = parseFloat(getParam(inst.id, inst.baseId, "lado_a"));
+                let ladoBSolid = parseFloat(getParam(inst.id, inst.baseId, "lado_b"));
+                let espSlab = parseFloat(getParam(inst.id, inst.baseId, "espesor")) / 100;
+                
+                let volLosa = q * espSlab;
+                totalConcreteM3 += volLosa;
+                let cemLosa = (tipoH3 === "H17" ? 300 : 350) / 25;
+                
+                if(elabo3 === "Manual") {
+                    addMat("Cemento Portland (Bolsa 25kg)", volLosa * cemLosa, "bolsas");
+                    addMat("Arena Gruesa (m³)", volLosa * 0.65, "m³");
+                    addMat("Piedra Partida (m³)", volLosa * 0.65, "m³");
+                    addManualElabLab(volLosa);
+                } else {
+                    addMat(`Hormigón Elaborado ${tipoH3} (m³)`, volLosa, "m³");
+                }
+                
+                let dPcpal = parseInt(getParam(inst.id, inst.baseId, "arm_pcpal_diam"));
+                let cPcpal = parseFloat(getParam(inst.id, inst.baseId, "arm_pcpal_cant"));
+                let mlPcpal = cPcpal * ladoASolid * q;
+                addMat(`Hierro ø${dPcpal}mm (Varilla 12m)`, mlPcpal / 12, "varillas");
+                totalSteelKg += mlPcpal * (Math.pow(dPcpal, 2) / 162);
+
+                let dRep = parseInt(getParam(inst.id, inst.baseId, "arm_rep_diam"));
+                let cRep = parseFloat(getParam(inst.id, inst.baseId, "arm_rep_cant"));
+                let mlRep = cRep * ladoBSolid * q;
+                addMat(`Hierro ø${dRep}mm (Varilla 12m)`, mlRep / 12, "varillas");
+                totalSteelKg += mlRep * (Math.pow(dRep, 2) / 162);
+                
+                addLab("Oficial Albañil", 1.5, "hs");
+                addLab("Ayudante", 1.8, "hs");
+                break;
+            case "3.2":
+                let lc = parseFloat(getParam(inst.id, inst.baseId, "lc"));
+                let l_ap = parseFloat(getParam(inst.id, inst.baseId, "la"));
+                let lcu = parseFloat(getParam(inst.id, inst.baseId, "lcu"));
+                let lr = parseFloat(getParam(inst.id, inst.baseId, "lr"));
+                
+                let lv1 = lc + (2 * l_ap);
+                let standardLen = getClosestVigueta(lv1);
+                let totalViguetas = Math.ceil(lcu / 0.50) + 1;
+                
+                addMat(`Vigueta Pretensada L=${standardLen}m (un)`, totalViguetas, "un");
+
+                let areaLosa = q;
+                let molon = getParam(inst.id, inst.baseId, "molon");
+                if(molon.includes("EPS") || molon.includes("Polietileno")) {
+                    addMat("Molón Polietileno EPS (un)", 2 * areaLosa, "un");
+                } else if(molon.includes("12.5")) {
+                    addMat("Ladrillo Cerámico 12.5 cm para Techo (un)", 8 * areaLosa, "un");
+                } else if(molon.includes("17")) {
+                    addMat("Ladrillo Cerámico 17 cm para Techo (un)", 8 * areaLosa, "un");
+                } else {
+                    addMat("Bloque Hormigón CORBLOCK (un)", 8 * areaLosa, "un");
+                }
+
+                let capa = getParam(inst.id, inst.baseId, "capa");
+                let m3capa = capa.includes("4") ? 0.10 : (capa.includes("5") ? 0.12 : 0.14);
+                let volCapa = areaLosa * m3capa;
+                totalConcreteM3 += volCapa;
+                addMat("Cemento Portland (Bolsa 25kg)", volCapa * (300/25), "bolsas");
+                addMat("Arena Gruesa (m³)", volCapa * 0.65, "m³");
+                addMat("Piedra Partida (m³)", volCapa * 0.65, "m³");
+
+                let dRef = parseInt(getParam(inst.id, inst.baseId, "arm_ref_diam"));
+                let cRef = parseFloat(getParam(inst.id, inst.baseId, "arm_ref_cant"));
+                let mlRefTotal = cRef * lr * q;
+                let varRef = mlRefTotal / 12;
+                addMat(`Hierro ø${dRef}mm (Varilla 12m)`, varRef, "varillas");
+                totalSteelKg += mlRefTotal * (Math.pow(dRef, 2) / 162);
+
+                addLab("Oficial Albañil", 1.0, "hs");
+                addLab("Ayudante", 1.2, "hs");
+                break;
+            case "4.1":
+            case "4.2":
+            case "4.3":
+                let isFino = inst.baseId === "4.2";
+                addMat("Cal Hidratada (Bolsa 25kg)", q * (isFino ? 3/25 : 6/25), "bolsas");
+                addMat("Cemento Portland (Bolsa 25kg)", q * (isFino ? 1/25 : 1.5/25), "bolsas");
+                addMat("Arena Fina (m³)", q * 0.02, "m³");
+                addLab("Oficial Albañil", isFino ? 0.5 : 0.6, "hs");
+                addLab("Ayudante", isFino ? 0.3 : 0.4, "hs");
+                break;
+            case "5.1":
+                let elabo5 = getParam(inst.id, inst.baseId, "elabo");
+                let espProm = parseFloat(getParam(inst.id, inst.baseId, "espesor_prom")) / 100;
+                let aliviano = getParam(inst.id, inst.baseId, "aliviano");
+                
+                let volTecho = q * espProm;
+                totalConcreteM3 += volTecho;
+                
+                if(elabo5 === "Manual") {
+                    addMat("Cemento Portland (Bolsa 25kg)", volTecho * (300/25), "bolsas");
+                    addManualElabLab(volTecho);
+                } else {
+                    addMat("Hormigón Elaborado H17 (m³)", volTecho, "m³");
+                }
+                addMat(`Agregado Alivianado (${aliviano})`, q * 0.05, "m³");
+                addLab("Oficial Albañil", 0.5, "hs");
+                addLab("Ayudante", 0.5, "hs");
+                break;
+            case "6.1":
+                let espCp = parseFloat(getParam(inst.id, inst.baseId, "espesor")) / 100;
+                let espNivel = parseFloat(getParam(inst.id, inst.baseId, "capa_espesor")) / 100;
+                let tipoCp = getParam(inst.id, inst.baseId, "tipo");
+                
+                let volCp = q * espCp;
+                totalConcreteM3 += volCp;
+                if(tipoCp === "Cascotes") addMat("Cascotes (m³)", volCp * 0.8, "m³");
+                else addMat("Piedra Partida (m³)", volCp * 0.7, "m³");
+                addMat("Cemento Portland (Bolsa 25kg)", volCp * (220/25), "bolsas");
+                addMat("Arena Gruesa (m³)", volCp * 0.6, "m³");
+
+                let volNiv = q * espNivel;
+                totalConcreteM3 += volNiv;
+                addMat("Cemento Portland (Bolsa 25kg)", volNiv * (300/25), "bolsas");
+                addMat("Arena Fina/Mediana (m³)", volNiv * 0.7, "m³");
+
+                addLab("Oficial Albañil", 0.8, "hs");
+                addLab("Ayudante", 1.2, "hs");
+                break;
+            case "6.2":
+                let tipoPiso = getParam(inst.id, inst.baseId, "tipo");
+                let pastinaKg = parseFloat(getParam(inst.id, inst.baseId, "pastina"));
+                
+                addMat(`${tipoPiso} (m²)`, q, "m²");
+                
+                if (tipoPiso.includes("Calcáreo")) {
+                    let volMorteroCalc = q * 0.02;
+                    totalConcreteM3 += volMorteroCalc;
+                    addMat("Cemento Portland (Bolsa 25kg)", volMorteroCalc * (300/25), "bolsas");
+                    addMat("Arena Fina (m³)", volMorteroCalc * 0.9, "m³");
+                } else {
+                    let kgPegPerM2 = tipoPiso.includes("Porcelanato") ? 6.0 : 4.5;
+                    let totalKgPeg = q * kgPegPerM2;
+                    let bolsasPeg = Math.ceil(totalKgPeg / 30);
+                    addMat("Pegamento para Pisos/Cerámicos (Bolsa 30kg)", bolsasPeg, "bolsas");
+                }
+                
+                let totalPastinaKg = q * pastinaKg;
+                addMat("Pastina (Bolsa 1kg)", totalPastinaKg, "bolsas");
+
+                addLab("Oficial Colocador de Pisos", 1.2, "hs");
+                addLab("Ayudante", 0.8, "hs");
+                break;
+            case "6.3":
+                addMat("Piso Flotante con Manta (m²)", q * 1.1, "m²");
+                addLab("Oficial Colocador de Pisos", 0.6, "hs");
+                break;
+            case "6.4":
+                let tipoZoc = getParam(inst.id, inst.baseId, "tipo");
+                addMat(`Zócalo ${tipoZoc} (ml)`, q, "ml");
+                if(tipoZoc !== "PVC") {
+                    addMat("Pegamento para Pisos/Cerámicos (Bolsa 30kg)", q * 0.05, "bolsas");
+                }
+                addLab("Oficial Colocador de Pisos", 0.4, "hs");
+                break;
+            case "6.5":
+                let wallPastina = parseFloat(getParam(inst.id, inst.baseId, "pastina"));
+                let kgPegWall = 5.0;
+                
+                addMat("Cerámico de Pared PI3 30x45 (m²)", q, "m²");
+                let totalKgPegWall = q * kgPegWall;
+                addMat("Pegamento para Pisos/Cerámicos (Bolsa 30kg)", Math.ceil(totalKgPegWall / 30), "bolsas");
+                addMat("Pastina (Bolsa 1kg)", q * wallPastina, "bolsas");
+
+                addLab("Oficial Colocador de Pisos", 1.5, "hs");
+                addLab("Ayudante", 1.0, "hs");
+                break;
+            default:
+                addMat(`Insumos Genéricos (${inst.baseId})`, q * 1.5, "un");
+                addLab("Ayudante", 1.0, "hs");
+                break;
+        }
+
+        if(totalSteelKg > 0) {
+            let alambreKg = totalSteelKg / 15;
+            addMat("Alambre de Atar (kg)", alambreKg, "kg");
+        }
+        if(totalConcreteM3 > 0) {
+            let clavosKg = totalConcreteM3;
+            addMat("Clavos Punta París 2 1/2\" (kg)", clavosKg, "kg");
+        }
+
+        let costMat = 0;
+        let costLab = 0;
+        const displayId = `${inst.baseId}${inst.letter}`;
+        let itemMatsReport = [];
+        let itemLabsReport = [];
+
+        mats.forEach(m => {
+            let wasteMult = getWaste(m.name);
+            let qtyW = m.qty * wasteMult;
+            let p = getEffectivePrice(m.name);
+            let cost = qtyW * p;
+            costMat += cost;
+            
+            itemMatsReport.push({ name: m.name, qty: qtyW, un: m.un, price: p, total: cost });
+
+            if(!materialsTotal[m.name]) materialsTotal[m.name] = { total: 0, un: m.un, price: p, byItem: [] };
+            materialsTotal[m.name].total += qtyW;
+            materialsTotal[m.name].price = p;
+            materialsTotal[m.name].byItem.push({ id: displayId, desc: inst.desc, qty: qtyW, waste: wasteMult });
+        });
+
+        labs.forEach(l => {
+            let p = getEffectivePrice(l.name);
+            let cost = l.qty * p;
+            costLab += cost;
+            
+            itemLabsReport.push({ name: l.name, qty: l.qty, un: l.un, price: p, total: cost });
+
+            laborTasks.push({ 
+                instId: inst.id, displayId: displayId, desc: inst.desc, q: q, 
+                unItem: itemDictionary[inst.baseId].un, labName: l.name, 
+                baseYield: l.baseYield, totalQty: l.qty, totalCost: cost 
+            });
+        });
+
+        let puMat = q > 0 ? costMat / q : 0;
+        let puLab = q > 0 ? costLab / q : 0;
+
+        budgetLines.push({
+            id: displayId, desc: inst.desc, un: itemDictionary[inst.baseId].un, qty: q,
+            puMat: puMat, puLab: puLab, parcialMat: costMat, parcialLab: costLab, subtotal: costMat + costLab,
+            materials: itemMatsReport, labor: itemLabsReport
+        });
+    });
+
+    return { budgetLines, materialsTotal, laborTasks };
+}
+
+function formatCurrency(num) {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(num);
+}
+
+function updatePrice(name, val) {
+    if(val && !isNaN(val)) {
+        customPrices[name] = parseFloat(val);
+        renderTab3();
+    }
+}
+
+function updateYield(instId, labName, val) {
+    if(val && !isNaN(val)) {
+        customYields[`${instId}_${labName}`] = parseFloat(val);
+        renderTab3();
+    }
+}
+
+function renderTab3() {
+    const wrapper = document.getElementById('summary-wrapper');
+    const actions = document.getElementById('tab3-actions');
+    const activeInsts = itemInstances.filter(i => i.qty > 0);
+
+    if (activeInsts.length === 0) {
+        wrapper.innerHTML = `<div class="empty-state"><h2>⚠️ No hay Insumos</h2></div>`;
+        actions.style.display = 'none';
+        return;
+    }
+
+    const data = calculateProject();
+    actions.style.display = 'flex';
+
+    const keysMat = Object.keys(data.materialsTotal).sort();
+    let matHtml = `
+    <div class="summary-section">
+        <h3 class="summary-title">🏗️ Reporte Consolidado de Materiales (Precios Editables)</h3>
+        <p style="font-size:0.82rem; color:#718096; margin-bottom:15px;">* Incluye porcentajes de desperdicio según normativas constructivas y régimen (${projectConfig.iva === 'SI' ? 'IVA Inc.' : 'Sin IVA'}).</p>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Recurso / Insumo</th>
+                    <th class="unit-col">Unidad</th>
+                    <th class="qty-col">Cant. Total (c/ Desp.)</th>
+                    <th class="money-col">Precio Unitario ($)</th>
+                    <th class="money-col">Costo Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${keysMat.map(k => {
+                    const item = data.materialsTotal[k];
+                    const isDiscrete = ["bolsas", "varillas", "un", "latas", "baldes"].includes(item.un.toLowerCase());
+                    const badgeHtml = isDiscrete ? `<br><span style="background:#38a169; color:white; padding:3px 8px; border-radius:12px; font-size:0.75rem; display:inline-block; margin-top:5px;">Comprar: ${Math.ceil(item.total)}</span>` : '';
+                    const effPrice = getEffectivePrice(k);
+                    
+                    return `
+                    <tr>
+                        <td>
+                            <div style="font-weight:bold; color:#2d3748;">${k}</div>
+                            <div class="bom-breakdown">
+                                ${item.byItem.map(b => `
+                                    <div class="bom-item-line">
+                                        <span><span style="color:#2b6cb0; font-weight:600;">${b.id}</span> - ${b.desc}</span>
+                                        <span style="font-weight:bold;">${b.qty.toFixed(2)} ${item.un}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </td>
+                        <td class="unit-col" style="vertical-align:top;">${item.un}</td>
+                        <td class="qty-col" style="vertical-align:top; font-size:1.05rem;">
+                            ${item.total.toFixed(2)} ${badgeHtml}
+                        </td>
+                        <td class="money-col" style="vertical-align:top;">
+                            <input type="number" class="qty-input" style="width:120px;" value="${effPrice.toFixed(2)}" onchange="updatePrice('${k}', this.value)">
+                        </td>
+                        <td class="money-col" style="vertical-align:top; font-weight:bold;">${formatCurrency(item.total * effPrice)}</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>
+    </div>`;
+
+    let moHtml = `
+    <div class="summary-section">
+        <h3 class="summary-title">👷 Reporte Consolidado de Mano de Obra (Rendimientos HH Editables)</h3>
+        <p style="font-size:0.82rem; color:#718096; margin-bottom:15px;">* Régimen Laboral: <b>${projectConfig.laborRegime}</b>.</p>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Ítem - Tarea</th>
+                    <th>Categoría M.O.</th>
+                    <th class="qty-col" style="width:150px;">Rendimiento (HH/Un)</th>
+                    <th class="qty-col">Cant. Ítem</th>
+                    <th class="qty-col">Total HH</th>
+                    <th class="money-col">Precio HH ($)</th>
+                    <th class="money-col">Costo Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.laborTasks.map(t => {
+                    const effLabPrice = getEffectivePrice(t.labName);
+                    return `
+                    <tr>
+                        <td><span style="color:#2b6cb0; font-weight:bold;">${t.displayId}</span> ${t.desc}</td>
+                        <td style="font-weight:bold; color:#4a5568;">${t.labName}</td>
+                        <td class="qty-col">
+                            <input type="number" class="qty-input" style="width:90px;" value="${t.baseYield.toFixed(2)}" step="0.1" onchange="updateYield('${t.instId}', '${t.labName}', this.value)">
+                        </td>
+                        <td class="qty-col">${t.q.toFixed(2)} ${t.unItem}</td>
+                        <td class="qty-col" style="font-weight:bold;">${t.totalQty.toFixed(2)}</td>
+                        <td class="money-col">
+                            <input type="number" class="qty-input" style="width:100px;" value="${effLabPrice.toFixed(2)}" onchange="updatePrice('${t.labName}', this.value)">
+                        </td>
+                        <td class="money-col" style="font-weight:bold; color:#276749;">${formatCurrency(t.totalCost)}</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>
+    </div>`;
+
+    wrapper.innerHTML = matHtml + moHtml;
+}
+
+function renderTab4() {
+    const wrapper = document.getElementById('incidence-wrapper');
+    const actions = document.getElementById('tab4-actions');
+    const activeInsts = itemInstances.filter(i => i.qty > 0);
+
+    if (activeInsts.length === 0) {
+        wrapper.innerHTML = `<div class="empty-state"><h2>⚠️ Demanda Vacía</h2></div>`;
+        actions.style.display = 'none';
+        return;
+    }
+
+    const data = calculateProject();
+    actions.style.display = 'flex';
+
+    let totalGral = 0;
+    let resourceMap = {};
+
+    data.budgetLines.forEach(l => {
+        totalGral += l.subtotal;
+        l.materials.forEach(m => {
+            let key = `MAT|${m.name}|${m.un}`;
+            if(!resourceMap[key]) resourceMap[key] = { type: 'MAT.', name: m.name, un: m.un, qty: 0, cost: 0, price: m.price };
+            resourceMap[key].qty += m.qty;
+            resourceMap[key].cost += m.total;
+        });
+        l.labor.forEach(lb => {
+            let key = `M.O.|${lb.name}|${lb.un}`;
+            if(!resourceMap[key]) resourceMap[key] = { type: 'M.O.', name: lb.name, un: lb.un, qty: 0, cost: 0, price: lb.price };
+            resourceMap[key].qty += lb.qty;
+            resourceMap[key].cost += lb.total;
+        });
+    });
+
+    let sortedResources = Object.values(resourceMap).sort((a,b) => b.cost - a.cost);
+    let sumCost = 0;
+    let sumInc = 0;
+
+    let html = `
+    <div class="summary-section" style="overflow-x: auto;">
+        <h3 class="summary-title">📋 Demanda e Incidencia de Insumos en el Costo Total</h3>
+        <table class="summary-table" style="min-width: 900px;">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">TIPO</th>
+                    <th>Insumo / Recurso</th>
+                    <th class="unit-col">Unidad</th>
+                    <th class="money-col">Costo Unit. ($)</th>
+                    <th class="qty-col">Cantidad Total</th>
+                    <th class="money-col">Costo Total ($)</th>
+                    <th class="unit-col">Incidencia (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sortedResources.map(r => {
+                    let inc = totalGral > 0 ? (r.cost / totalGral * 100) : 0;
+                    sumCost += r.cost;
+                    sumInc += inc;
+                    return `
+                    <tr>
+                        <td style="font-weight:bold; color:${r.type === 'MAT.' ? '#38a169' : '#2b6cb0'};">${r.type}</td>
+                        <td style="font-weight:bold; color:#2d3748;">${r.name}</td>
+                        <td class="unit-col">${r.un}</td>
+                        <td class="money-col">${formatCurrency(r.price)}</td>
+                        <td class="qty-col">${r.qty.toFixed(2)}</td>
+                        <td class="money-col" style="font-weight:bold;">${formatCurrency(r.cost)}</td>
+                        <td class="unit-col" style="font-weight:bold; color:#2b6cb0;">${inc.toFixed(2)}%</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align:right; font-weight:bold; font-size:1.05rem; padding:15px;">TOTAL GENERAL INSUMOS:</td>
+                    <td class="money-col" style="font-weight:bold; font-size:1.05rem; padding:15px; background:#f0fff4; color:#22543d;">
+                        ${formatCurrency(sumCost)}
+                    </td>
+                    <td class="unit-col" style="font-weight:bold; font-size:1.05rem; padding:15px; background:#f0fff4; color:#22543d;">
+                        ${sumInc.toFixed(2)}%
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>`;
+
+    wrapper.innerHTML = html;
+}
+
+let apuAccordionState = {};
+
+function toggleApuAccordion(id) {
+    apuAccordionState[id] = !apuAccordionState[id];
+    renderTab5();
+}
+
+function renderTab5() {
+    const wrapper = document.getElementById('apu-wrapper');
+    const actions = document.getElementById('tab5-actions');
+    const activeInsts = itemInstances.filter(i => i.qty > 0);
+
+    if (activeInsts.length === 0) {
+        wrapper.innerHTML = `<div class="empty-state"><h2>⚠️ APU Vacío</h2></div>`;
+        actions.style.display = 'none';
+        return;
+    }
+
+    const data = calculateProject();
+    actions.style.display = 'flex';
+
+    let html = `
+    <div class="summary-section" style="overflow-x: auto;">
+        <h3 class="summary-title">📈 Análisis de Precios Unitarios (APU) Ítem x Ítem</h3>
+        <table class="summary-table" style="min-width: 950px;">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"></th>
+                    <th>Ítem</th>
+                    <th>Descripción</th>
+                    <th class="unit-col">Und.</th>
+                    <th class="money-col">Subtotal Mat. Unit.</th>
+                    <th class="money-col">Subtotal M.O. Unit.</th>
+                    <th class="money-col">Total Unitario (Mat. + M.O.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.budgetLines.map(line => {
+                    const isOpen = apuAccordionState[line.id] || false;
+                    const arrow = isOpen ? '▼' : '▶';
+                    const qItem = line.qty > 0 ? line.qty : 1;
+                    const unitMat = line.puMat;
+                    const unitLab = line.puLab;
+                    const unitTotal = unitMat + unitLab;
+
+                    return `
+                    <tr class="budget-row" onclick="toggleApuAccordion('${line.id}')">
+                        <td style="text-align:center; color:#2b6cb0; font-weight:bold;">${arrow}</td>
+                        <td style="font-weight:bold; color:#2b6cb0;">${line.id}</td>
+                        <td>${line.desc}</td>
+                        <td class="unit-col">${line.un}</td>
+                        <td class="money-col" style="font-weight:bold; color:#38a169;">${formatCurrency(unitMat)}</td>
+                        <td class="money-col" style="font-weight:bold; color:#2b6cb0;">${formatCurrency(unitLab)}</td>
+                        <td class="money-col" style="font-weight:bold; color:#1a365d; background:#f0fff4;">${formatCurrency(unitTotal)}</td>
+                    </tr>
+                    <tr class="budget-detail-row" style="display: ${isOpen ? 'table-row' : 'none'};">
+                        <td colspan="7" style="padding: 0 10px 15px 10px; background:#f8fafc;">
+                            <div class="budget-detail-container">
+                                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px;">
+                                    <div style="flex: 1; min-width: 280px;">
+                                        <div style="font-weight:600; color:#4a5568; margin-bottom:4px; font-size:0.82rem;">MATERIALES UNITARIOS (Consumo x ${line.un}):</div>
+                                        ${line.materials.length > 0 ? `
+                                            <table style="width:100%; font-size:0.82rem; background:white; border-radius:4px; border:1px solid #e2e8f0;">
+                                                <thead><tr style="background:#edf2f7;"><th style="padding:6px;">Insumo</th><th style="padding:6px; text-align:right;">Cant. Unit.</th><th style="padding:6px; text-align:right;">P. Unit. ($)</th><th style="padding:6px; text-align:right;">Parcial Unit.</th></tr></thead>
+                                                <tbody>
+                                                    ${line.materials.map(m => {
+                                                        const unitQty = m.qty / qItem;
+                                                        const unitCost = m.total / qItem;
+                                                        return `
+                                                        <tr>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7;">${m.name}</td>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7; text-align:right; font-weight:600;">${unitQty.toFixed(4)} ${m.un}</td>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7; text-align:right;">${formatCurrency(m.price)}</td>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7; text-align:right;">${formatCurrency(unitCost)}</td>
+                                                        </tr>`;
+                                                    }).join('')}
+                                                </tbody>
+                                            </table>
+                                        ` : '<span style="font-size:0.82rem; color:#a0aec0;">Sin materiales asociados.</span>'}
+                                        <div style="text-align:right; font-weight:bold; font-size:0.85rem; margin-top:6px; color:#38a169;">
+                                            Subtotal Materiales Unitario: ${formatCurrency(unitMat)}
+                                        </div>
+                                    </div>
+                                    <div style="flex: 1; min-width: 280px;">
+                                        <div style="font-weight:600; color:#4a5568; margin-bottom:4px; font-size:0.82rem;">MANO DE OBRA UNITARIA (HH x ${line.un}):</div>
+                                        ${line.labor.length > 0 ? `
+                                            <table style="width:100%; font-size:0.82rem; background:white; border-radius:4px; border:1px solid #e2e8f0;">
+                                                <thead><tr style="background:#edf2f7;"><th style="padding:6px;">Categoría</th><th style="padding:6px; text-align:right;">HH Unitarias</th><th style="padding:6px; text-align:right;">Precio HH</th><th style="padding:6px; text-align:right;">Costo Unit.</th></tr></thead>
+                                                <tbody>
+                                                    ${line.labor.map(l => {
+                                                        const unitHH = l.qty / qItem;
+                                                        const unitLabCost = l.total / qItem;
+                                                        return `
+                                                        <tr>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7;">${l.name}</td>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7; text-align:right; font-weight:600;">${unitHH.toFixed(3)} ${l.un}</td>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7; text-align:right;">${formatCurrency(l.price)}</td>
+                                                            <td style="padding:5px 6px; border-bottom:1px solid #edf2f7; text-align:right;">${formatCurrency(unitLabCost)}</td>
+                                                        </tr>`;
+                                                    }).join('')}
+                                                </tbody>
+                                            </table>
+                                        ` : '<span style="font-size:0.82rem; color:#a0aec0;">Sin mano de obra asociada.</span>'}
+                                        <div style="text-align:right; font-weight:bold; font-size:0.85rem; margin-top:6px; color:#2b6cb0;">
+                                            Subtotal Mano de Obra Unitario: ${formatCurrency(unitLab)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>
+    </div>`;
+
+    wrapper.innerHTML = html;
+}
+
+checkLicense();
+renderTab1();
+</script>
+</body>
+</html>
